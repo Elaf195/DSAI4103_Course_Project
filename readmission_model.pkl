@@ -1,0 +1,71 @@
+
+# score.py — Deployment scoring script for Diabetes Readmission Model
+# Usage: python score.py
+
+import pickle
+import pandas as pd
+import numpy as np
+
+MODEL_PATH   = 'models/readmission_model.pkl'
+FEATURES_PATH = 'models/feature_names.pkl'
+
+
+def init():
+    """Load model and feature names into memory."""
+    global model, feature_names
+    with open(MODEL_PATH, 'rb') as f:
+        model = pickle.load(f)
+    with open(FEATURES_PATH, 'rb') as f:
+        feature_names = pickle.load(f)
+    print(f"Model loaded: {model.best_estimator}")
+    print(f"Features    : {len(feature_names)}")
+
+
+def run(raw_data: pd.DataFrame) -> dict:
+    """
+    Score new patient records.
+
+    Parameters
+    ----------
+    raw_data : pd.DataFrame
+        DataFrame with the same feature columns used during training.
+
+    Returns
+    -------
+    dict with keys:
+        predictions   — binary class (0 or 1)
+        probabilities — readmission probability (0.0 – 1.0)
+        risk_label    — human-readable risk tier
+    """
+    data = raw_data[feature_names].copy()
+
+    predictions   = model.predict(data)
+    probabilities = model.predict_proba(data)[:, 1]
+
+    risk_labels = pd.cut(
+        probabilities,
+        bins=[0, 0.05, 0.15, 0.30, 1.0],
+        labels=['Low', 'Medium', 'High', 'Very High']
+    ).astype(str)
+
+    return {
+        'predictions'   : predictions.tolist(),
+        'probabilities' : probabilities.round(4).tolist(),
+        'risk_label'    : risk_labels.tolist()
+    }
+
+
+if __name__ == "__main__":
+    init()
+
+    # Test with a dummy sample
+    sample = pd.DataFrame([{f: 0 for f in feature_names}])
+    result = run(sample)
+
+    print("
+Sample prediction:")
+    print(f"  Prediction   : {result['predictions'][0]}")
+    print(f"  Probability  : {result['probabilities'][0]}")
+    print(f"  Risk label   : {result['risk_label'][0]}")
+    print("
+Scoring script working correctly.")
