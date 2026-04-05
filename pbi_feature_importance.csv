@@ -1,0 +1,3 @@
+group,n_samples,positive_rate,auc,auc_gap,fpr,fnr,precision,recall
+Female,7403,9.12,0.6606,0.002,0.3958,0.3793,0.136,0.6207
+Male,6592,8.8,0.6563,-0.0023,0.3796,0.4034,0.1317,0.5966
